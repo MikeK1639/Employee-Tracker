@@ -1,196 +1,165 @@
-const {prompt}=require('inquirer');
-const mysql = require('mysql2') 
-// const inquirer = require('inquirer'); 
-// const cTable = require('console.table'); 
+const { prompt, default: inquirer } = require("inquirer");
+const logo = require("asciiart-logo");
+const db = require("./db");
+require("console.table");
 
+init();
+//init function which contains the text logo
+function init() {
+    const logoText = logo({ name: "Employee Manager"}).render();
 
-
-
-// afterConnection = () => {
-//   console.log("***********************************")
-//   console.log("*                                 *")
-//   console.log("*        EMPLOYEE MANAGER         *")
-//   console.log("*                                 *")
-//   console.log("***********************************")
-//   promptUser();
-// }; 
- init()
- function init (){
-  main()
- }
-function main  () {
-      prompt([
-          {
-              type: "list",
-              message: "Please select from the following options:",
-              name: "initialize",
-              choices: [
-                 { name:"View all departments",
-                value:"View all departments"},
-                  {name: "View all roles",
-                  value:"View all roles"},
-                  {name:"View all employees",
-                  value:"View all employees"},
-                  {name:"Add a department",
-                  value: "Add a department"},
-                  {name:"Add a role",
-                  value:"Add a role"},
-                  {name:"Add an employee",
-                  value:"Add an employee"},
-                 {name: "Update an employee role",
-                 value: "Update an employee role"},
-                 {name: "I'm finished",
-                value:"I'm finished"}
-              ]
-          }
-      ]).then(res => {
-          // console.log(ans.initialize);
-          let choice = res.initialize
-          switch (choice) {
-              case "View all departments": viewDept();
-                  break;
-              case "View all roles": viewRoles();
-                  break;
-              case "View all employees": viewEmployees();
-                  break;
-              case "Add a department": addDept();
-                  break;
-              case "Add a role": addRole();
-                  break;
-              case "Add an employee": addEmployee();
-                  break;
-              case "Update an employee role": updateEmployee();
-                  break;
-              case "I'm finished":
-                  console.log("Thank you very much!");
-                  process.exit();
-          }
-      }).catch(err => console.error(err));
+    console.log(logoText);
 }
+//function to load inquirer prompt, giving choices a name and value to drill in in the .then
+function loadMainPrompts() {
+    prompt([
+        {
+            type: "list",
+            name: "choice",
+            message: "What would you like to do?",
+            choices: [
+                {
+                    name: "View All Employees",
+                    value: "VIEW_EMPLOYEES"
+                },
+                {
+                    name: "Add Employee",
+                    value: "ADD_EMPLOYEE"
+                },
+                {
+                    name: "Update Employee Role",
+                    value: "UPDATE_EMPLOYEE_ROLE"
+                },
+                {
+                    name: "View All Roles",
+                    value: "VIEW_ROLES"
+                },
+                {
+                    name: "Add Role",
+                    value: "ADD_ROLE"
+                },
+                {
+                    name: "View All Departments",
+                    value: "VIEW_DEPARTMENTS"
+                },
+                {
+                    name: "Add Department",
+                    value: "ADD_DEPARTMENT"
+                } 
+            ]
+        } //.then which calls all methods in ./db/index.js using an if statement
+    ]).then((res) => {
+        if (res.choice === "VIEW_EMPLOYEES") {
+            db.findAllEmployees().then(([rows]) => {
+                console.table(rows)
+                loadMainPrompts();
+            })
+            //this else if adds employees so a prompt will be shown to input needed information
+        } else if(res.choice === "ADD_EMPLOYEE") {
+            prompt([
+                {
+                    type: "input",
+                    name: "addfirstname",
+                    message: "What is the first name of the employee?"   
+                },
+                {
+                    type: "input",
+                    name: "addlastname",
+                    message: "What is the last name of the employee?"   
+                },
+                {
+                    type: "input",
+                    name: "addroleid",
+                    message: "What is the role ID of the employee?"   
+                },
+                {
+                    type: "input",
+                    name: "addmgrid",
+                    message: "What is the manager ID of the employee (if applicable)?"   
+                }
+            ]).then((res) => {
+                db.addEmployee(res.addfirstname, res.addlastname, res.addroleid, res.addmgrid || null )
+                .then(([rows]) => {
+                    console.table(rows)
+                    loadMainPrompts();
+                })
+            })
+            //this else if updates employee roles so a prompt will be shown to input needed information
+        } else if(res.choice === "UPDATE_EMPLOYEE_ROLE") {
+            prompt([
+                {
+                    type: "input",
+                    name: "employeeid",
+                    message: "What is the ID of the employee you are updating?"   
+                },
+                {
+                    type: "input",
+                    name: "addnewroleid",
+                    message: "What is the new role ID of the employee?"   
+                }
+            ]).then((res) => {
+                db.updateRole(res.addnewroleid, res.employeeid)
+                .then(([rows]) => {
+                    console.table(rows)
+                    loadMainPrompts();
+                })
+            })
 
+        } else if(res.choice === "VIEW_ROLES") {
+            db.findAllRoles().then(([rows]) => {
+                console.table(rows)
+                loadMainPrompts();
+            })
+            //this else if adds roles so a prompt will be shown to input needed information
+        } else if(res.choice === "ADD_ROLE") {
+            prompt([
+                {
+                    type: "input",
+                    name: "addtitle",
+                    message: "What is the title of the role?"   
+                },
+                {
+                    type: "input",
+                    name: "addsalary",
+                    message: "What is the salary for the role?"   
+                },
+                {
+                    type: "input",
+                    name: "adddptid",
+                    message: "What is the department ID for the role?"   
+                }
+            ]).then((res) => {
+                db.addRole(res.addtitle, res.addsalary, res.adddptid)
+                .then(([rows]) => {
+                    console.table(rows)
+                    loadMainPrompts();
+                })
+            })
 
+        } else if(res.choice === "VIEW_DEPARTMENTS") {
+            db.findAllDepartments().then(([rows]) => {
+                console.table(rows)
+                loadMainPrompts();
+            })
+            //this else if adds departments so a prompt will be shown to input needed information
+        } else if(res.choice === "ADD_DEPARTMENT") {
+            prompt([
+                {
+                    type: "input",
+                    name: "addname",
+                    message: "What is the name of the department you would like to add?"   
+                }
+            ]).then((res) => {
+                db.addDept(res.addname)
+                .then(([rows]) => {
+                    console.table(rows)
+                    loadMainPrompts();
+                })
+            })
+        }
+    }).catch ((err) =>  {
+        console.log(err);
+     })
+};
 
-// const viewDept = () => {
-//   // console.log("Working")
-//   db.query(`SELECT * FROM department`, (err, results) => {
-//       err ? console.error(err) : console.table(results);
-//       init();
-//   })
-// };
-
-// const viewRoles = () => {
-//   db.query(`SELECT * FROM roles`, (err, results) => {
-//       err ? console.error(err) : console.table(results);
-//       init();
-//   })
-// };
-
-// const viewEmployees = () => {
-//   db.query(`SELECT * FROM employees`, (err, results) => {
-//       err ? console.error(err) : console.table(results);
-//       init();
-//   })
-// }
-
-// const addDept = () => {
-//   inquirer
-//       .prompt([
-//           {
-//               type: "input",
-//               message: "What is the name of the department you'd like to add?",
-//               name: "addDept"
-//           }
-//       ]).then(ans => {
-//           db.query(`INSERT INTO department(name)
-//                   VALUES(?)`, ans.addDept, (err, results) => {
-//               if (err) {
-//                   console.log(err)
-//               } else {
-//                   db.query(`SELECT * FROM department`, (err, results) => {
-//                       err ? console.error(err) : console.table(results);
-//                       init();
-//                   })
-//               }
-//           }
-//           )
-//       })
-// };
-
-// const addRole = () => {
-//   const deptChoices = () => db.promise().query(`SELECT * FROM department`)
-//       .then((rows) => {
-//           let arrNames = rows[0].map(obj => obj.name);
-//           return arrNames
-//       })
-//   inquirer
-//       .prompt([
-//           {
-//               type: "input",
-//               message: "What is the title of the role you'd like to add?",
-//               name: "roleTitle"
-//           },
-//           {
-//               type: "input",
-//               message: "What is the salary for this role?",
-//               name: "roleSalary"
-//           },
-//           {
-//               type: "list",
-//               message: "Which department is this role in?",
-//               name: "addDept",
-//               choices: deptChoices
-//           }
-//       ]).then(ans => {
-//           db.promise().query(`SELECT id FROM department WHERE name = ?`, ans.addDept)
-//               .then(answer => {
-//                   let mappedId = answer[0].map(obj => obj.id);
-//                   // console.log(mappedId[0])
-//                   return mappedId[0]
-//               })
-//               .then((mappedId) => {
-//                   db.promise().query(`INSERT INTO roles(title, salary, department_id)
-//               VALUES(?, ?, ?)`, [ans.roleTitle, ans.roleSalary, mappedId]);
-//                   init()
-//               })
-//       })
-// };
-
-// const addEmployee = () => {
-//   const rollChoices = () => db.promise().query(`SELECT * FROM roles`)
-//   .then((rows) => {
-//       let arrNames = rows[0].map(obj => obj.name);
-//       return arrNames
-//   })
-//   inquirer
-//       .prompt([
-//           {
-//               type: "input",
-//               message: "What is the employee's first name?",
-//               name: "firstName"
-//           },
-//           {
-//               type: "input",
-//               message: "What is the employee's last name?",
-//               name: "lastName"
-//           },
-//           {
-//               type: "list",
-//               message: "What is the employee's role?",
-//               name: "employeeRole",
-//               choices: rollChoices
-//           }
-//       ]).then(ans => {
-//           db.query(`INSERT INTO employees(first_name, last_name)
-//                   VALUES(?, ?)`, [ans.firstName, ans.lastName], (err, results) => {
-//               if (err) {
-//                   console.log(err)
-//               } else {
-//                   db.query(`SELECT * FROM employees`, (err, results) => {
-//                       err ? console.error(err) : console.table(results);
-//                       init();
-//                   })
-//               }
-//           }
-//           )
-//       })
-// }
+loadMainPrompts();
